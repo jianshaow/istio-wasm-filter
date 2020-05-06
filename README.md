@@ -1,1 +1,1 @@
-# istio-wasme-filter
+# istio-wasm-filter
