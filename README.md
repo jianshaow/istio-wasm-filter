@@ -8,8 +8,8 @@ export PATH=$HOME/.wasme/bin:$PATH
 
 # build on local docker enviroment
 wasme init .
-wasme build assemblyscript -t webassemblyhub.io/jianshao/add-header:v0.1 .
-wasme push webassemblyhub.io/jianshao/add-header:v0.1
+wasme build assemblyscript -t webassemblyhub.io/jianshao/add-header:v0.1.0 .
+wasme push webassemblyhub.io/jianshao/add-header:v0.1.0
 
 # create wasme crds and operator
 kubectl apply -f https://github.com/solo-io/wasme/releases/latest/download/wasme.io_v1_crds.yaml
@@ -18,7 +18,7 @@ kubectl apply -f https://github.com/solo-io/wasme/releases/latest/download/wasme
 # create foo ns and deploy a httpbin on it
 kubectl create ns foo
 kubectl label ns foo istio-injection=enabled
-kubectl apply -f $ISTIO/samples/httpbin/httpbin.yaml -n foo
+kubectl apply -f https://raw.githubusercontent.com/istio/istio/1.5.2/samples/httpbin/httpbin.yaml -n foo
 
 # declarative deployment
 cat <<EOF | kubectl apply -f -
