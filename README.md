@@ -5,9 +5,10 @@
 curl -sL https://run.solo.io/wasme/install | sh
 export PATH=$HOME/.wasme/bin:$PATH
 
+# checkout source code
+cd /tmp  && git clone https://github.com/jianshaow/istio-wasm-filter.git && cd istio-wasm-filter
 
 # build on local docker enviroment
-wasme init .
 wasme build assemblyscript -t webassemblyhub.io/jianshao/authz-filter:v0.0.1 .
 wasme push webassemblyhub.io/jianshao/add-header:v0.0.1
 

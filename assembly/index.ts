@@ -1,6 +1,6 @@
 export * from "@solo-io/proxy-runtime/proxy";
 import { RootContext, Context, RootContextHelper, ContextHelper, registerRootContext, FilterHeadersStatusValues, LogLevelValues, stream_context } from "@solo-io/proxy-runtime";
-import { log } from "@solo-io/proxy-runtime/assembly/runtime";
+// import { log } from "@solo-io/proxy-runtime/assembly/runtime";
 
 class AddHeaderRoot extends RootContext {
   configuration: string;
@@ -27,7 +27,7 @@ class AddHeader extends Context {
     const root_context = this.root_context;
     let authz_header = stream_context.headers.request.get("authorization")
     if (authz_header == null) {
-      log(LogLevelValues.info, "no authorization header");
+      // log(LogLevelValues.info, "no authorization header");
     }
     return FilterHeadersStatusValues.Continue;
   }
