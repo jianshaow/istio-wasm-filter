@@ -8,8 +8,8 @@ export PATH=$HOME/.wasme/bin:$PATH
 
 # build on local docker enviroment
 wasme init .
-wasme build assemblyscript -t webassemblyhub.io/jianshao/add-header:v0.1.0 .
-wasme push webassemblyhub.io/jianshao/add-header:v0.1.0
+wasme build assemblyscript -t webassemblyhub.io/jianshao/authz-filter:v0.0.1 .
+wasme push webassemblyhub.io/jianshao/add-header:v0.0.1
 
 # create wasme crds and operator
 kubectl apply -f https://github.com/solo-io/wasme/releases/latest/download/wasme.io_v1_crds.yaml
@@ -33,6 +33,6 @@ spec:
       kind: Deployment
   filter:
     config: world
-    image: webassemblyhub.io/jianshao/add-header:v0.1
+    image: webassemblyhub.io/jianshao/add-header:v0.0.1
 EOF
 ~~~
