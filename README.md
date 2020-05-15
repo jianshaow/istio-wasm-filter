@@ -12,6 +12,9 @@ cd /tmp  && git clone https://github.com/jianshaow/istio-wasm-filter.git && cd i
 wasme build assemblyscript -t webassemblyhub.io/jianshao/authz-filter:v0.0.1 .
 wasme push webassemblyhub.io/jianshao/add-header:v0.0.1
 
+# run on a local envoy
+wasme deploy envoy webassemblyhub.io/jianshao/authz-filter:v0.0.1
+
 # create wasme crds and operator
 kubectl apply -f https://github.com/solo-io/wasme/releases/latest/download/wasme.io_v1_crds.yaml
 kubectl apply -f https://github.com/solo-io/wasme/releases/latest/download/wasme-default.yaml

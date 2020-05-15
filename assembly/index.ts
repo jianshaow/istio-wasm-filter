@@ -1,33 +1,27 @@
 export * from "@solo-io/proxy-runtime/proxy";
-import { RootContext, Context, RootContextHelper, ContextHelper, registerRootContext, FilterHeadersStatusValues, LogLevelValues, stream_context } from "@solo-io/proxy-runtime";
+import { RootContext, Context, RootContextHelper, ContextHelper, registerRootContext, FilterHeadersStatusValues, log, LogLevelValues, stream_context } from "@solo-io/proxy-runtime";
 // import { log } from "@solo-io/proxy-runtime/assembly/runtime";
 
-class AddHeaderRoot extends RootContext {
+class AuthzFilterRoot extends RootContext {
   configuration: string;
 
-  onConfigure(): bool {
-    let conf_buffer = super.getConfiguration();
-    let result = String.UTF8.decode(conf_buffer);
-    this.configuration = result;
-    return true;
-  }
-
-  createContext(): Context {
-    return ContextHelper.wrap(new AddHeader(this));
+  createContext(context_id: u32): Context {
+    return ContextHelper.wrap(new AuthzFilter(context_id, this));
   }
 }
 
-class AddHeader extends Context {
-  root_context: AddHeaderRoot;
-  constructor(root_context: AddHeaderRoot) {
-    super();
+class AuthzFilter extends Context {
+  root_context: AuthzFilterRoot;
+  constructor(context_id: u32, root_context: AuthzFilterRoot) {
+    super(context_id, root_context);
     this.root_context = root_context;
   }
   onRequestHeaders(a: u32): FilterHeadersStatusValues {
     const root_context = this.root_context;
     let authz_header = stream_context.headers.request.get("authorization")
     if (authz_header == null) {
-      // log(LogLevelValues.info, "no authorization header");
+      log(LogLevelValues.info, "no authorization header");
+      FilterHeadersStatusValues.StopIteration
     }
     return FilterHeadersStatusValues.Continue;
   }
@@ -42,4 +36,4 @@ class AddHeader extends Context {
   }
 }
 
-registerRootContext(() => { return RootContextHelper.wrap(new AddHeaderRoot()); }, "authz-filter");
+registerRootContext((context_id: u32) => { return RootContextHelper.wrap(new AuthzFilterRoot(context_id)); }, "authz-filter");
