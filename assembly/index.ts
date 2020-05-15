@@ -1,26 +1,31 @@
 export * from "@solo-io/proxy-runtime/proxy";
-import { RootContext, Context, RootContextHelper, ContextHelper, registerRootContext, FilterHeadersStatusValues, log, LogLevelValues, stream_context } from "@solo-io/proxy-runtime";
-// import { log } from "@solo-io/proxy-runtime/assembly/runtime";
+import { RootContext, Context, RootContextHelper, ContextHelper, registerRootContext, FilterHeadersStatusValues, stream_context } from "@solo-io/proxy-runtime";
 
 class AuthzFilterRoot extends RootContext {
   configuration: string;
 
-  createContext(context_id: u32): Context {
-    return ContextHelper.wrap(new AuthzFilter(context_id, this));
+  onConfigure(): bool {
+    let conf_buffer = super.getConfiguration();
+    let result = String.UTF8.decode(conf_buffer);
+    this.configuration = result;
+    return true;
+  }
+
+  createContext(): Context {
+    return ContextHelper.wrap(new AuthzFilter(this));
   }
 }
 
 class AuthzFilter extends Context {
   root_context: AuthzFilterRoot;
-  constructor(context_id: u32, root_context: AuthzFilterRoot) {
-    super(context_id, root_context);
+  constructor(root_context: AuthzFilterRoot) {
+    super();
     this.root_context = root_context;
   }
   onRequestHeaders(a: u32): FilterHeadersStatusValues {
     const root_context = this.root_context;
     let authz_header = stream_context.headers.request.get("authorization")
-    if (authz_header == null) {
-      log(LogLevelValues.info, "no authorization header");
+    if (authz_header == null || authz_header == "") {
       FilterHeadersStatusValues.StopIteration
     }
     return FilterHeadersStatusValues.Continue;
@@ -36,4 +41,4 @@ class AuthzFilter extends Context {
   }
 }
 
-registerRootContext((context_id: u32) => { return RootContextHelper.wrap(new AuthzFilterRoot(context_id)); }, "authz-filter");
+registerRootContext(() => { return RootContextHelper.wrap(new AuthzFilterRoot()); }, "authz-filter");
