@@ -1,5 +1,7 @@
 export * from "@solo-io/proxy-runtime/proxy";
-import { RootContext, Context, RootContextHelper, ContextHelper, registerRootContext, FilterHeadersStatusValues, stream_context } from "@solo-io/proxy-runtime";
+import { RootContext, Context, RootContextHelper, ContextHelper, registerRootContext, FilterHeadersStatusValues, LogLevelValues, stream_context } from "@solo-io/proxy-runtime";
+import { log } from "@solo-io/proxy-runtime/runtime";
+import { encode, decode } from "as-base64";
 
 class AuthzFilterRoot extends RootContext {
   configuration: string;
@@ -18,27 +20,78 @@ class AuthzFilterRoot extends RootContext {
 
 class AuthzFilter extends Context {
   root_context: AuthzFilterRoot;
+  authzContext: AuthzContext;
   constructor(root_context: AuthzFilterRoot) {
     super();
     this.root_context = root_context;
+    this.authzContext = new AuthzContext();
+    this.authzContext.authzInfo = new AuthzInfo();
+    this.authzContext.config = root_context.configuration;
   }
+
   onRequestHeaders(a: u32): FilterHeadersStatusValues {
-    const root_context = this.root_context;
-    let authz_header = stream_context.headers.request.get("authorization")
+    let authz_header = stream_context.headers.request.get("authorization");
+    let priority_header = stream_context.headers.request.get("x-request-priority");
+
+    log(LogLevelValues.info, "authz_header: " + authz_header);
+    log(LogLevelValues.info, "priority_header: " + priority_header);
+
+    if (priority_header != null && priority_header != "") {
+      this.authzContext.authzInfo.requestPriority = u8(parseInt(priority_header));
+    }
+
     if (authz_header == null || authz_header == "") {
-      FilterHeadersStatusValues.StopIteration
-    }
-    return FilterHeadersStatusValues.Continue;
-  }
-  onResponseHeaders(a: u32): FilterHeadersStatusValues {
-    const root_context = this.root_context;
-    if (root_context.configuration == "") {
-      stream_context.headers.response.add("hello", "world!");
+      log(LogLevelValues.warn, "no authorization header");
     } else {
-      stream_context.headers.response.add("hello", root_context.configuration);
+      let headerParts = authz_header.split(" ");
+      if (headerParts.length == 2) {
+        this.authzContext.authzInfo.authzType = headerParts[0];
+        let authzContent = headerParts[1];
+        log(LogLevelValues.info, "authzContent: " + authzContent);
+        this.authzContext.authzInfo.clientID = authenticate(authzContent);
+      }
+
     }
     return FilterHeadersStatusValues.Continue;
   }
+
+  onResponseHeaders(a: u32): FilterHeadersStatusValues {
+    log(LogLevelValues.info, "authzContext: " + this.authzContext.toString());
+    if (this.authzContext.config != null && this.authzContext.config != "") {
+      stream_context.headers.response.add("x-filter-config", this.authzContext.config);
+    }
+    if (this.authzContext.authzInfo.clientID != null && this.authzContext.authzInfo.clientID != "") {
+      stream_context.headers.response.add("x-client-id", this.authzContext.authzInfo.clientID);
+    }
+    return FilterHeadersStatusValues.Continue;
+  }
+}
+
+class AuthzInfo {
+  clientID: string;
+  authzType: string;
+  requestPriority: u8;
+  toString(): string {
+    return "AuthzInfo[clientID=" + this.clientID + ", authzType=" + this.authzType + ", requestPriority=" + this.requestPriority.toString() + "]";
+  }
+}
+
+class AuthzContext {
+  authzInfo: AuthzInfo;
+  config: string;
+
+  toString(): string {
+    return "AuthzContext[config=" + this.config + ", authzInfo=" + this.authzInfo.toString() + "]";
+  }
+}
+
+function authenticate(credential: string): string {
+  let decoded = String.UTF8.decode(decode(credential).buffer);
+  log(LogLevelValues.info, "decoded: " + decoded)
+  let basicAuthzParts = decoded.split(":");
+  // TODO
+
+  return basicAuthzParts[0]
 }
 
 registerRootContext(() => { return RootContextHelper.wrap(new AuthzFilterRoot()); }, "authz-filter");

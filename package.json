@@ -1,4 +1,8 @@
 {
+  "name": "istio-wasm-filter",
+  "version": "0.0.1",
+  "description": "A wasm filter for envoy",
+  "author": "Jianshao Wu",
   "scripts": {
     "asbuild:untouched": "asc assembly/index.ts -b build/untouched.wasm --use abort=abort_proc_exit -t build/untouched.wat --validate --sourceMap --debug",
     "asbuild:optimized": "asc assembly/index.ts -b build/optimized.wasm --use abort=abort_proc_exit -t build/optimized.wat --validate --sourceMap --optimize",
@@ -7,7 +11,8 @@
   },
   "dependencies": {
     "@assemblyscript/loader": "^0.9.1",
-    "@solo-io/proxy-runtime": "^0.1.2"
+    "@solo-io/proxy-runtime": "^0.1.2",
+    "as-base64": "^0.1.1"
   },
   "devDependencies": {
     "assemblyscript": "^0.9.1"

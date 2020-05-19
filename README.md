@@ -15,6 +15,9 @@ wasme push webassemblyhub.io/jianshao/add-header:v0.0.1
 # run on a local envoy
 wasme deploy envoy webassemblyhub.io/jianshao/authz-filter:v0.0.1
 
+# test locally
+curl localhost:8080/posts/1 -v
+
 # create wasme crds and operator
 kubectl apply -f https://github.com/solo-io/wasme/releases/latest/download/wasme.io_v1_crds.yaml
 kubectl apply -f https://github.com/solo-io/wasme/releases/latest/download/wasme-default.yaml
