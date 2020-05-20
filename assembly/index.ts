@@ -1,6 +1,6 @@
 export * from "@solo-io/proxy-runtime/proxy";
 import { RootContext, Context, RootContextHelper, ContextHelper, registerRootContext, FilterHeadersStatusValues, LogLevelValues, stream_context } from "@solo-io/proxy-runtime";
-import { log } from "@solo-io/proxy-runtime/runtime";
+import { GrpcStatusValues, log, send_local_response } from "@solo-io/proxy-runtime/runtime";
 import { decode } from "as-base64";
 
 class AuthzFilterRoot extends RootContext {
