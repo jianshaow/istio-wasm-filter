@@ -10,13 +10,15 @@ cd /tmp  && git clone https://github.com/jianshaow/istio-wasm-filter.git && cd i
 
 # build on local docker enviroment
 wasme build assemblyscript -t webassemblyhub.io/jianshao/authz-filter:v0.0.1 .
-wasme push webassemblyhub.io/jianshao/add-header:v0.0.1
 
 # run on a local envoy
 wasme deploy envoy webassemblyhub.io/jianshao/authz-filter:v0.0.1
 
 # test locally
-curl localhost:8080/posts/1 -v
+curl -v -H "Authorization:Basic dGVzdENsaWVudDpzZWNyZXQ=" -H "X-Request-Priority:50" localhost:8080/posts/1
+
+# push to remote repository
+wasme push webassemblyhub.io/jianshao/authz-filter:v0.0.1
 
 # create wasme crds and operator
 kubectl apply -f https://github.com/solo-io/wasme/releases/latest/download/wasme.io_v1_crds.yaml
@@ -32,7 +34,7 @@ cat <<EOF | kubectl apply -f -
 apiVersion: wasme.io/v1
 kind: FilterDeployment
 metadata:
-  name: httpbin-custom-filter
+  name: authz-filter
   namespace: foo
 spec:
   deployment:
@@ -40,6 +42,20 @@ spec:
       kind: Deployment
   filter:
     config: world
-    image: webassemblyhub.io/jianshao/add-header:v0.0.1
+    image: webassemblyhub.io/jianshao/authz-filter:v0.0.1
 EOF
+
+# run on minikube environment
+export SECURED_HTTPBIN=$(kubectl get service httpbin -n foo -o go-template='{{.spec.clusterIP}}')
+
+# access httpbin service
+curl -i -X POST \
+-H "Authorization:Basic dGVzdENsaWVudDpzZWNyZXQ=" \
+-H "Content-Type:application/json" \
+-H "X-Request-Priority:50" \
+-d \
+'{
+  "message":"hello world!"
+}' \
+"http://$SECURED_HTTPBIN:8000/post"
 ~~~

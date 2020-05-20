@@ -1,7 +1,7 @@
 export * from "@solo-io/proxy-runtime/proxy";
 import { RootContext, Context, RootContextHelper, ContextHelper, registerRootContext, FilterHeadersStatusValues, LogLevelValues, stream_context } from "@solo-io/proxy-runtime";
 import { log } from "@solo-io/proxy-runtime/runtime";
-import { encode, decode } from "as-base64";
+import { decode } from "as-base64";
 
 class AuthzFilterRoot extends RootContext {
   configuration: string;
@@ -33,6 +33,7 @@ class AuthzFilter extends Context {
     let authz_header = stream_context.headers.request.get("authorization");
     let priority_header = stream_context.headers.request.get("x-request-priority");
 
+    log(LogLevelValues.info, "context_id: " + this.context_id.toString());
     log(LogLevelValues.info, "authz_header: " + authz_header);
     log(LogLevelValues.info, "priority_header: " + priority_header);
 
@@ -42,15 +43,16 @@ class AuthzFilter extends Context {
 
     if (authz_header == null || authz_header == "") {
       log(LogLevelValues.warn, "no authorization header");
+      send_local_response(403, "not authorized", String.UTF8.encode("not authorized"), [], GrpcStatusValues.Unauthenticated);
+      return FilterHeadersStatusValues.StopIteration;
     } else {
       let headerParts = authz_header.split(" ");
       if (headerParts.length == 2) {
         this.authzContext.authzInfo.authzType = headerParts[0];
         let authzContent = headerParts[1];
         log(LogLevelValues.info, "authzContent: " + authzContent);
-        this.authzContext.authzInfo.clientID = authenticate(authzContent);
+        this.authzContext.authzInfo.clientID = this.authenticate(authzContent);
       }
-
     }
     return FilterHeadersStatusValues.Continue;
   }
@@ -64,6 +66,16 @@ class AuthzFilter extends Context {
       stream_context.headers.response.add("x-client-id", this.authzContext.authzInfo.clientID);
     }
     return FilterHeadersStatusValues.Continue;
+  }
+
+  private authenticate(credential: string): string {
+    let decoded = String.UTF8.decode(decode(credential).buffer);
+    log(LogLevelValues.info, "decoded: " + decoded)
+    let basicAuthzParts = decoded.split(":");
+    // TODO: invoke authentication-service
+    // this.root_context.httpCall("authenticaton-service", [], new ArrayBuffer(0), [], 100, new HttpCallback("ctx"), (c: Context) => { });
+
+    return basicAuthzParts[0]
   }
 }
 
@@ -83,15 +95,6 @@ class AuthzContext {
   toString(): string {
     return "AuthzContext[config=" + this.config + ", authzInfo=" + this.authzInfo.toString() + "]";
   }
-}
-
-function authenticate(credential: string): string {
-  let decoded = String.UTF8.decode(decode(credential).buffer);
-  log(LogLevelValues.info, "decoded: " + decoded)
-  let basicAuthzParts = decoded.split(":");
-  // TODO
-
-  return basicAuthzParts[0]
 }
 
 registerRootContext(() => { return RootContextHelper.wrap(new AuthzFilterRoot()); }, "authz-filter");
