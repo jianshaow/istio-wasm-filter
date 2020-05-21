@@ -9,16 +9,16 @@ export PATH=$HOME/.wasme/bin:$PATH
 cd /tmp  && git clone https://github.com/jianshaow/istio-wasm-filter.git && cd istio-wasm-filter
 
 # build on local docker enviroment
-wasme build assemblyscript -t webassemblyhub.io/jianshao/authz-filter:v0.0.1 .
+wasme build assemblyscript -t webassemblyhub.io/jianshao/authz-filter:v0.0.2 .
 
 # run on a local envoy
-wasme deploy envoy webassemblyhub.io/jianshao/authz-filter:v0.0.1
+wasme deploy envoy webassemblyhub.io/jianshao/authz-filter:v0.0.2 --config=authentication-service
 
 # test locally
 curl -v -H "Authorization:Basic dGVzdENsaWVudDpzZWNyZXQ=" -H "X-Request-Priority:50" localhost:8080/posts/1
 
 # push to remote repository
-wasme push webassemblyhub.io/jianshao/authz-filter:v0.0.1
+wasme push webassemblyhub.io/jianshao/authz-filter:v0.0.2
 
 # create wasme crds and operator
 kubectl apply -f https://github.com/solo-io/wasme/releases/latest/download/wasme.io_v1_crds.yaml
@@ -41,8 +41,8 @@ spec:
     istio:
       kind: Deployment
   filter:
-    config: world
-    image: webassemblyhub.io/jianshao/authz-filter:v0.0.1
+    config: authentication-service
+    image: webassemblyhub.io/jianshao/authz-filter:v0.0.2
 EOF
 
 # run on minikube environment

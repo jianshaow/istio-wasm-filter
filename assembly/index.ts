@@ -1,32 +1,22 @@
 export * from "@solo-io/proxy-runtime/proxy";
-import { RootContext, Context, RootContextHelper, ContextHelper, registerRootContext, FilterHeadersStatusValues, LogLevelValues, stream_context } from "@solo-io/proxy-runtime";
-import { GrpcStatusValues, log, send_local_response } from "@solo-io/proxy-runtime/runtime";
+import { RootContext, Context, RootContextHelper, ContextHelper, registerRootContext, FilterHeadersStatusValues, LogLevelValues, GrpcStatusValues, log, send_local_response, stream_context } from "@solo-io/proxy-runtime";
 import { decode } from "as-base64";
 
 class AuthzFilterRoot extends RootContext {
-  configuration: string;
-
-  onConfigure(): bool {
-    let conf_buffer = super.getConfiguration();
-    let result = String.UTF8.decode(conf_buffer);
-    this.configuration = result;
-    return true;
-  }
-
-  createContext(): Context {
-    return ContextHelper.wrap(new AuthzFilter(this));
+  createContext(context_id: u32): Context {
+    return ContextHelper.wrap(new AuthzFilter(context_id, this));
   }
 }
 
 class AuthzFilter extends Context {
   root_context: AuthzFilterRoot;
   authzContext: AuthzContext;
-  constructor(root_context: AuthzFilterRoot) {
-    super();
+  constructor(context_id: u32, root_context: AuthzFilterRoot) {
+    super(context_id, root_context);
     this.root_context = root_context;
     this.authzContext = new AuthzContext();
     this.authzContext.authzInfo = new AuthzInfo();
-    this.authzContext.config = root_context.configuration;
+    this.authzContext.config = root_context.getConfiguration();
   }
 
   onRequestHeaders(a: u32): FilterHeadersStatusValues {
@@ -97,4 +87,4 @@ class AuthzContext {
   }
 }
 
-registerRootContext(() => { return RootContextHelper.wrap(new AuthzFilterRoot()); }, "authz-filter");
+registerRootContext((context_id: u32) => { return RootContextHelper.wrap(new AuthzFilterRoot(context_id)); }, "authz-filter");
