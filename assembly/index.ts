@@ -11,6 +11,7 @@ class AuthzFilterRoot extends RootContext {
 class AuthzFilter extends Context {
   root_context: AuthzFilterRoot;
   authzContext: AuthzContext;
+  allow: bool = false;
   constructor(context_id: u32, root_context: AuthzFilterRoot) {
     super(context_id, root_context);
     this.root_context = root_context;
@@ -33,8 +34,6 @@ class AuthzFilter extends Context {
 
     if (authz_header == null || authz_header == "") {
       log(LogLevelValues.warn, "no authorization header");
-      send_local_response(403, "not authorized", String.UTF8.encode("not authorized"), [], GrpcStatusValues.Unauthenticated);
-      return FilterHeadersStatusValues.StopIteration;
     } else {
       let headerParts = authz_header.split(" ");
       if (headerParts.length == 2) {
@@ -42,9 +41,18 @@ class AuthzFilter extends Context {
         let authzContent = headerParts[1];
         log(LogLevelValues.info, "authzContent: " + authzContent);
         this.authzContext.authzInfo.clientID = this.authenticate(authzContent);
+        if (this.authzContext.authzInfo.clientID != null) {
+          this.allow = true;
+        }
       }
     }
-    return FilterHeadersStatusValues.Continue;
+
+    if (this.allow) {
+      return FilterHeadersStatusValues.Continue;
+    }
+
+    send_local_response(403, "not authorized", String.UTF8.encode("not authorized"), [], GrpcStatusValues.Unauthenticated);
+    return FilterHeadersStatusValues.StopIteration;
   }
 
   onResponseHeaders(a: u32): FilterHeadersStatusValues {
