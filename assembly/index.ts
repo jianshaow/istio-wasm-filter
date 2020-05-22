@@ -1,5 +1,5 @@
 export * from "@solo-io/proxy-runtime/proxy";
-import { RootContext, Context, RootContextHelper, ContextHelper, registerRootContext, FilterHeadersStatusValues, LogLevelValues, GrpcStatusValues, log, send_local_response, stream_context } from "@solo-io/proxy-runtime";
+import { RootContext, Context, RootContextHelper, ContextHelper, registerRootContext, FilterHeadersStatusValues, LogLevelValues, GrpcStatusValues, log, send_local_response, stream_context, WasmResultValues } from "@solo-io/proxy-runtime";
 import { decode } from "as-base64";
 
 class AuthzFilterRoot extends RootContext {
@@ -12,12 +12,13 @@ class AuthzFilter extends Context {
   root_context: AuthzFilterRoot;
   authzContext: AuthzContext;
   allow: bool = false;
+
   constructor(context_id: u32, root_context: AuthzFilterRoot) {
     super(context_id, root_context);
     this.root_context = root_context;
     this.authzContext = new AuthzContext();
     this.authzContext.authzInfo = new AuthzInfo();
-    this.authzContext.config = root_context.getConfiguration();
+    this.authzContext.authnAddr = root_context.getConfiguration();
   }
 
   onRequestHeaders(a: u32): FilterHeadersStatusValues {
@@ -38,12 +39,9 @@ class AuthzFilter extends Context {
       let headerParts = authz_header.split(" ");
       if (headerParts.length == 2) {
         this.authzContext.authzInfo.authzType = headerParts[0];
-        let authzContent = headerParts[1];
-        log(LogLevelValues.info, "authzContent: " + authzContent);
-        this.authzContext.authzInfo.clientID = this.authenticate(authzContent);
-        if (this.authzContext.authzInfo.clientID != null) {
-          this.allow = true;
-        }
+        let credential = headerParts[1];
+        log(LogLevelValues.info, "credential: " + credential);
+        this.authenticate(credential);
       }
     }
 
@@ -51,47 +49,62 @@ class AuthzFilter extends Context {
       return FilterHeadersStatusValues.Continue;
     }
 
-    send_local_response(403, "not authorized", String.UTF8.encode("not authorized"), [], GrpcStatusValues.Unauthenticated);
+    send_local_response(401, "not authorized", String.UTF8.encode("not authorized"), [], GrpcStatusValues.Unauthenticated);
     return FilterHeadersStatusValues.StopIteration;
   }
 
   onResponseHeaders(a: u32): FilterHeadersStatusValues {
     log(LogLevelValues.info, "authzContext: " + this.authzContext.toString());
-    if (this.authzContext.config != null && this.authzContext.config != "") {
-      stream_context.headers.response.add("x-filter-config", this.authzContext.config);
+    if (this.authzContext.authnAddr != null && this.authzContext.authnAddr != "") {
+      stream_context.headers.response.add("x-authn-address", this.authzContext.authnAddr);
     }
-    if (this.authzContext.authzInfo.clientID != null && this.authzContext.authzInfo.clientID != "") {
-      stream_context.headers.response.add("x-client-id", this.authzContext.authzInfo.clientID);
+    if (this.authzContext.authzInfo.clientId != null && this.authzContext.authzInfo.clientId != "") {
+      stream_context.headers.response.add("x-client-id", this.authzContext.authzInfo.clientId);
     }
     return FilterHeadersStatusValues.Continue;
   }
 
-  private authenticate(credential: string): string {
+  private authenticate(credential: string): void {
     let decoded = String.UTF8.decode(decode(credential).buffer);
     log(LogLevelValues.info, "decoded: " + decoded)
     let basicAuthzParts = decoded.split(":");
-    // TODO: invoke authentication-service
-    // this.root_context.httpCall("authenticaton-service", [], new ArrayBuffer(0), [], 100, new HttpCallback("ctx"), (c: Context) => { });
 
-    return basicAuthzParts[0]
+    // let result = this.root_context.httpCall(this.authzContext.authnAddr, [], new ArrayBuffer(0), [], 1000, this, (origin_context: Context, headers: u32, body_size: usize, trailers: u32) => {
+    //   log(LogLevelValues.info, "httpCall callback");
+    //   let context = origin_context as AuthzFilter;
+    //   let status = stream_context.headers.http_callback.get(":status");
+    //   log(LogLevelValues.info, "httpCall status: " + status.toString());
+
+    //   if (status != "200") {
+    //     send_local_response(403, "permision denied", String.UTF8.encode("permision denied"), [], GrpcStatusValues.PermissionDenied);
+    //     return;
+    //   }
+    //   context.allow = true;
+    // });
+    // log(LogLevelValues.info, "httpCall result: " + result.toString());
+
+    // if (result == WasmResultValues.Ok) {
+      this.allow = true;
+      this.authzContext.authzInfo.clientId = basicAuthzParts[0];
+    // }
   }
 }
 
 class AuthzInfo {
-  clientID: string;
+  clientId: string;
   authzType: string;
   requestPriority: u8;
   toString(): string {
-    return "AuthzInfo[clientID=" + this.clientID + ", authzType=" + this.authzType + ", requestPriority=" + this.requestPriority.toString() + "]";
+    return "AuthzInfo[clientId=" + this.clientId + ", authzType=" + this.authzType + ", requestPriority=" + this.requestPriority.toString() + "]";
   }
 }
 
 class AuthzContext {
   authzInfo: AuthzInfo;
-  config: string;
+  authnAddr: string;
 
   toString(): string {
-    return "AuthzContext[config=" + this.config + ", authzInfo=" + this.authzInfo.toString() + "]";
+    return "AuthzContext[authnAddr=" + this.authnAddr + ", authzInfo=" + this.authzInfo.toString() + "]";
   }
 }
 

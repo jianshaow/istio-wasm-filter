@@ -1,0 +1,55 @@
+admin:
+  accessLogPath: /dev/null
+  address:
+    socketAddress:
+      address: 0.0.0.0
+      portValue: 19000
+staticResources:
+  clusters:
+  - connectTimeout: 0.250s
+    dnsLookupFamily: V4_ONLY
+    hosts:
+    - socketAddress:
+        address: jsonplaceholder.typicode.com
+        ipv4Compat: true
+        portValue: 443
+    name: static-cluster
+    tlsContext:
+      sni: jsonplaceholder.typicode.com
+    type: LOGICAL_DNS
+  listeners:
+  - address:
+      socketAddress:
+        address: 0.0.0.0
+        portValue: 8080
+    filterChains:
+    - filters:
+      - config:
+          httpFilters:
+          - config:
+              config:
+                configuration: https://httpbin.org/status/200
+                name: authz-filter
+                rootId: authz-filter
+                vmConfig:
+                  code:
+                    local:
+                      filename: build/optimized.wasm
+                  runtime: envoy.wasm.runtime.v8
+            name: envoy.filters.http.wasm
+          - name: envoy.router
+          routeConfig:
+            name: test
+            virtualHosts:
+            - domains:
+              - '*'
+              name: jsonplaceholder
+              routes:
+              - match:
+                  prefix: /
+                route:
+                  autoHostRewrite: true
+                  cluster: static-cluster
+          statPrefix: ingress_http
+        name: envoy.http_connection_manager
+    name: listener_0
