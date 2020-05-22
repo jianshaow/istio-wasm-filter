@@ -12,7 +12,7 @@ cd /tmp  && git clone https://github.com/jianshaow/istio-wasm-filter.git && cd i
 wasme build assemblyscript -t webassemblyhub.io/jianshao/authz-filter:v0.0.1 .
 
 # run on a local envoy
-wasme deploy envoy webassemblyhub.io/jianshao/authz-filter:v0.0.1
+wasme deploy envoy webassemblyhub.io/jianshao/authz-filter:v0.0.1 --config=authentication-service
 
 # test locally
 curl -v -H "Authorization:Basic dGVzdENsaWVudDpzZWNyZXQ=" -H "X-Request-Priority:50" localhost:8080/posts/1
@@ -41,7 +41,7 @@ spec:
     istio:
       kind: Deployment
   filter:
-    config: world
+    config: authentication-service
     image: webassemblyhub.io/jianshao/authz-filter:v0.0.1
 EOF
 
