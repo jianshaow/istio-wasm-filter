@@ -8,11 +8,17 @@ export PATH=$HOME/.wasme/bin:$PATH
 # checkout source code
 cd /tmp  && git clone https://github.com/jianshaow/istio-wasm-filter.git && cd istio-wasm-filter
 
-# build on local docker enviroment
+# build locally with wasme
 wasme build assemblyscript -t webassemblyhub.io/jianshao/authz-filter:v0.0.2 .
 
-# run on a local envoy
-wasme deploy envoy webassemblyhub.io/jianshao/authz-filter:v0.0.2 --config=authentication-service
+# run on a local envoy with wasme
+wasme deploy envoy webassemblyhub.io/jianshao/authz-filter:v0.0.2 --config=authn-service
+
+# build locally with asbuild
+npm run asbuild
+
+# run on istio proxy with docker
+docker run -ti --rm -p 8080:8080 --entrypoint=envoy -v $PWD/bootstrap.yaml:$PWD/bootstrap.yaml:ro -v $PWD/build:$PWD/build:ro -w $PWD istio/proxyv2:1.6.0 -c $PWD/bootstrap.yaml
 
 # test locally
 curl -v -H "Authorization:Basic dGVzdENsaWVudDpzZWNyZXQ=" -H "X-Request-Priority:50" localhost:8080/posts/1
