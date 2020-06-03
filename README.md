@@ -18,10 +18,13 @@ wasme deploy envoy webassemblyhub.io/jianshao/authz-filter:v0.0.2 --config=authn
 npm run asbuild
 
 # run on istio proxy with docker
-docker run -ti --rm -p 8080:8080 --entrypoint=envoy -v $PWD/bootstrap.yaml:$PWD/bootstrap.yaml:ro -v $PWD/build:$PWD/build:ro -w $PWD istio/proxyv2:1.6.0 -c $PWD/bootstrap.yaml
+docker run -ti --rm -p 8080:8080 --entrypoint=envoy -v $PWD/bootstrap.yaml:$PWD/bootstrap.yaml:ro -v $PWD/build:$PWD/build:ro -w $PWD istio/proxyv2:1.5.4 -c $PWD/bootstrap.yaml
 
-# test locally
-curl -v -H "Authorization:Basic dGVzdENsaWVudDpzZWNyZXQ=" -H "X-Request-Priority:50" localhost:8080/posts/1
+# test success
+curl -v -H "Authorization:Basic dGVzdENsaWVudDpzZWNyZXQ=" -H "X-Request-Priority:50" localhost:8080/anything
+
+# test failure
+curl -v -H "Authorization:Basic dGVzdENsaWVudDpzZWNyZXQ=" -H "X-Request-Priority:50" localhost:8080/anything/failure
 
 # push to remote repository
 wasme push webassemblyhub.io/jianshao/authz-filter:v0.0.2
