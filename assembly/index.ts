@@ -8,6 +8,16 @@ class AuthzFilterRoot extends RootContext {
   }
 }
 
+class AuthzInfo {
+  clientId: string;
+  authzType: string;
+  requestPriority: u8;
+  authenticated: bool = false;
+  toString(): string {
+    return "AuthzInfo[clientId = " + this.clientId + ", authzType = " + this.authzType + ", requestPriority = " + this.requestPriority.toString() + "]";
+  }
+}
+
 class AuthzFilter extends Context {
   root_context: AuthzFilterRoot;
   authzInfo: AuthzInfo;
@@ -21,6 +31,11 @@ class AuthzFilter extends Context {
   }
 
   onRequestHeaders(_a: u32): FilterHeadersStatusValues {
+    if (stream_context.headers.request.get("x-auth-internal") == "true") {
+      log(LogLevelValues.info, "internal invocation, skip it");
+      return FilterHeadersStatusValues.Continue;
+    }
+
     let authz_header = stream_context.headers.request.get("authorization");
     let priority_header = stream_context.headers.request.get("x-request-priority");
 
@@ -33,7 +48,7 @@ class AuthzFilter extends Context {
 
     if (authz_header == null || authz_header == "") {
       log(LogLevelValues.warn, "no authorization header");
-      send_local_response(401, "authentication required\n", String.UTF8.encode("authentication required"), [], GrpcStatusValues.Unauthenticated);
+      send_local_response(401, "authentication required", String.UTF8.encode("authentication required\n"), [], GrpcStatusValues.Unauthenticated);
       return FilterHeadersStatusValues.StopIteration;
     } else {
       let headerParts = authz_header.split(" ");
@@ -71,11 +86,17 @@ class AuthzFilter extends Context {
     let basicAuthzParts = decoded.split(":");
     this.authzInfo.clientId = basicAuthzParts[0];
 
-    let result = this.root_context.httpCall(this.authnCluster, stream_context.headers.request.get_headers(), new ArrayBuffer(0), [], 1000, this, (origin_context: Context, headers: u32, body_size: usize, trailers: u32) => {
-      let context = origin_context as AuthzFilter;
+    let headers = stream_context.headers.request.get_headers();
+    // headers.push({ key: str2ab("x-auth-internal"), value:str2ab("true") } as HeaderPair);
+    // let trailers = [{ key: String.UTF8.encode("x-auth-internal", true), value: String.UTF8.encode("true", true) } as HeaderPair]
+
+    let result = this.root_context.httpCall(this.authnCluster, headers, new ArrayBuffer(0), [], 1000, this, (origin_context: Context, headers: u32, body_size: usize, trailers: u32) => {
+      log(LogLevelValues.debug, "headers: " + headers.toString() + ", body_size: " + body_size.toString() + ", trailers: " + trailers.toString());
+
       let status = stream_context.headers.http_callback.get(":status");
       log(LogLevelValues.debug, "http_callback status: " + status);
-      log(LogLevelValues.debug, "headers: " + headers.toString() + ", body_size: " + body_size.toString() + ", trailers: " + trailers.toString());
+
+      let context = origin_context as AuthzFilter;
 
       context.setEffectiveContext();
       if (status != "200") {
@@ -91,7 +112,7 @@ class AuthzFilter extends Context {
 
     if (result != WasmResultValues.Ok) {
       log(LogLevelValues.warn, "httpCall fail, result: " + result.toString());
-      send_local_response(500, "internal server error\n", new ArrayBuffer(0), [], GrpcStatusValues.Internal);
+      send_local_response(500, "internal server error", String.UTF8.encode("internal server error\n"), [], GrpcStatusValues.Internal);
     }
   }
 
@@ -100,14 +121,13 @@ class AuthzFilter extends Context {
   }
 }
 
-class AuthzInfo {
-  clientId: string;
-  authzType: string;
-  requestPriority: u8;
-  authenticated: bool = false;
-  toString(): string {
-    return "AuthzInfo[clientId = " + this.clientId + ", authzType = " + this.authzType + ", requestPriority = " + this.requestPriority.toString() + "]";
-  }
-}
-
 registerRootContext((context_id: u32) => { return RootContextHelper.wrap(new AuthzFilterRoot(context_id)); }, "authz-filter");
+
+function str2ab(str: string): ArrayBuffer {
+  var buf = new ArrayBuffer(str.length * 2);
+  var bufView = Uint16Array.wrap(buf);
+  for (var i = 0, strLen = str.length; i < strLen; i++) {
+    bufView[i] = str.charCodeAt(i);
+  }
+  return buf;
+}
