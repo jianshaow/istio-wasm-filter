@@ -37,17 +37,6 @@ staticResources:
         config:
           statPrefix: ingress_http
           httpFilters:
-          - name: envoy.filters.http.wasm
-            config:
-              config:
-                configuration: authn-service
-                name: authz-filter
-                rootId: authz-filter
-                vmConfig:
-                  code:
-                    local:
-                      filename: build/optimized.wasm
-                  runtime: envoy.wasm.runtime.v8
           - name: envoy.router
           routeConfig:
             name: upstream_route

@@ -12,9 +12,10 @@ class AuthzInfo {
   clientId: string;
   authzType: string;
   requestPriority: u8;
-  authenticated: bool = false;
+  authorized: bool = false;
   toString(): string {
-    return "AuthzInfo[clientId = " + this.clientId + ", authzType = " + this.authzType + ", requestPriority = " + this.requestPriority.toString() + "]";
+    return "AuthzInfo[clientId = " + this.clientId + ", authzType = " + this.authzType + ", requestPriority = " + this.requestPriority.toString()
+      + ", authorized = " + this.authorized.toString() + "]";
   }
 }
 
@@ -60,7 +61,7 @@ class AuthzFilter extends Context {
       }
     }
 
-    if (this.authzInfo.authenticated) {
+    if (this.authzInfo.authorized) {
       log(LogLevelValues.info, "access allowed");
       return FilterHeadersStatusValues.Continue;
     }
@@ -74,9 +75,10 @@ class AuthzFilter extends Context {
     if (this.authnCluster != null && this.authnCluster != "") {
       stream_context.headers.response.add("x-authn-cluster", this.authnCluster);
     }
-    if (this.authzInfo.authenticated) {
+    if (this.authzInfo.clientId != null && this.authzInfo.clientId != "") {
       stream_context.headers.response.add("x-client-id", this.authzInfo.clientId);
     }
+    stream_context.headers.response.add("x-authorized", this.authzInfo.authorized.toString());
     return FilterHeadersStatusValues.Continue;
   }
 
@@ -86,28 +88,29 @@ class AuthzFilter extends Context {
     let basicAuthzParts = decoded.split(":");
     this.authzInfo.clientId = basicAuthzParts[0];
 
-    let headers = stream_context.headers.request.get_headers();
-    // headers.push({ key: str2ab("x-auth-internal"), value:str2ab("true") } as HeaderPair);
-    // let trailers = [{ key: String.UTF8.encode("x-auth-internal", true), value: String.UTF8.encode("true", true) } as HeaderPair]
+    let headers = this.buildAuthHeaders();
 
-    let result = this.root_context.httpCall(this.authnCluster, headers, new ArrayBuffer(0), [], 1000, this, (origin_context: Context, headers: u32, body_size: usize, trailers: u32) => {
-      log(LogLevelValues.debug, "headers: " + headers.toString() + ", body_size: " + body_size.toString() + ", trailers: " + trailers.toString());
+    let result = this.root_context.httpCall(this.authnCluster, headers, new ArrayBuffer(0), [], 1000, this,
+      (origin_context: Context, headers: u32, body_size: usize, trailers: u32) => {
+        log(LogLevelValues.debug, "headers: " + headers.toString() + ", body_size: " + body_size.toString() + ", trailers: " + trailers.toString());
 
-      let status = stream_context.headers.http_callback.get(":status");
-      log(LogLevelValues.debug, "http_callback status: " + status);
+        let status = stream_context.headers.http_callback.get(":status");
+        log(LogLevelValues.debug, "http_callback status: " + status);
 
-      let context = origin_context as AuthzFilter;
+        let context = origin_context as AuthzFilter;
+        context.setEffectiveContext();
 
-      context.setEffectiveContext();
-      if (status != "200") {
-        log(LogLevelValues.warn, "authn cluster return " + status + ", access not allowed!");
-        send_local_response(403, "permision denied", String.UTF8.encode("permision denied\n"), [], GrpcStatusValues.PermissionDenied);
-        return;
-      }
-      context.authzInfo.authenticated = true;
-      log(LogLevelValues.info, "access allowed, continue!");
-      continue_request();
-    });
+        if (status != "200") {
+          log(LogLevelValues.warn, "authn cluster return " + status + ", access not allowed!");
+          send_local_response(403, "permision denied", String.UTF8.encode("permision denied\n"), [], GrpcStatusValues.PermissionDenied);
+          return;
+        }
+
+        context.authzInfo.authorized = true;
+        log(LogLevelValues.info, "access allowed, continue!");
+        continue_request();
+      });
+
     log(LogLevelValues.debug, "httpCall result: " + result.toString());
 
     if (result != WasmResultValues.Ok) {
@@ -116,18 +119,33 @@ class AuthzFilter extends Context {
     }
   }
 
+  private buildAuthHeaders(): Headers {
+    let path = stream_context.headers.request.get(":path");
+    let authority = stream_context.headers.request.get(":authority");
+
+    let headers: Headers = [];
+
+    headers.push(this.newHeaderPair(":authority", authority));
+    if (path == "/anything/failure") {
+      headers.push(this.newHeaderPair(":path", "/status/403"));
+    } else {
+      headers.push(this.newHeaderPair(":path", "/status/200"));
+    }
+    headers.push(this.newHeaderPair(":method", "GET"));
+
+    return headers;
+  }
+
+  private newHeaderPair(key: string, value: string): HeaderPair {
+    let headerPair = new HeaderPair();
+    headerPair.key = String.UTF8.encode(key);
+    headerPair.value = String.UTF8.encode(value);
+    return headerPair;
+  }
+
   toString(): string {
     return "AuthzFilter[contextId = " + this.context_id.toString() + ", authnCluster = " + this.authnCluster + ", authzInfo = " + this.authzInfo.toString() + "]";
   }
 }
 
 registerRootContext((context_id: u32) => { return RootContextHelper.wrap(new AuthzFilterRoot(context_id)); }, "authz-filter");
-
-function str2ab(str: string): ArrayBuffer {
-  var buf = new ArrayBuffer(str.length * 2);
-  var bufView = Uint16Array.wrap(buf);
-  for (var i = 0, strLen = str.length; i < strLen; i++) {
-    bufView[i] = str.charCodeAt(i);
-  }
-  return buf;
-}
