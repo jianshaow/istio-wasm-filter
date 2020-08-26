@@ -9,17 +9,17 @@
   "author": "Jianshao Wu",
   "license": "MIT",
   "scripts": {
-    "asbuild:untouched": "asc assembly/index.ts -b build/untouched.wasm --use abort=abort_proc_exit -t build/untouched.wat --validate --sourceMap --debug",
-    "asbuild:optimized": "asc assembly/index.ts -b build/optimized.wasm --use abort=abort_proc_exit -t build/optimized.wat --validate --sourceMap --optimize",
+    "asbuild:untouched": "asc assembly/index.ts -b build/untouched.wasm --use abort=abort_proc_exit -t build/untouched.wat --sourceMap http://127.0.0.1:8081/build/untouched.wasm.map --debug",
+    "asbuild:optimized": "asc assembly/index.ts -b build/optimized.wasm --use abort=abort_proc_exit -t build/optimized.wat --sourceMap --optimize",
     "asbuild": "npm run asbuild:untouched && npm run asbuild:optimized",
     "test": "node tests"
   },
   "dependencies": {
-    "@assemblyscript/loader": "^0.9.4",
-    "@solo-io/proxy-runtime": "^0.1.7",
+    "@assemblyscript/loader": "^0.14.9",
+    "@solo-io/proxy-runtime": "^0.1.8",
     "as-base64": "^0.1.1"
   },
   "devDependencies": {
-    "assemblyscript": "^0.9.4"
+    "assemblyscript": "^0.14.9"
   }
 }
