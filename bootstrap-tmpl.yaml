@@ -7,24 +7,39 @@ admin:
 staticResources:
   clusters:
   - name: upstream
-    connectTimeout: 1s
-    dnsLookupFamily: V4_ONLY
-    hosts:
-    - socketAddress:
-        address: httpbin.org
-        portValue: 443
-    tlsContext:
-      sni: httpbin.org
+    connect_timeout: 1s
     type: LOGICAL_DNS
+    transport_socket:
+      name: envoy.transport_sockets.tls
+      typed_config:
+        "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+        sni: httpbin.org
+    load_assignment:
+      cluster_name: upstream
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: httpbin.org
+                port_value: 443
   - name: authn-service
     connectTimeout: 1s
-    hosts:
-    - socketAddress:
-        address: postman-echo.com
-        portValue: 443
-    tlsContext:
-      sni: postman-echo.com
     type: LOGICAL_DNS
+    transport_socket:
+      name: envoy.transport_sockets.tls
+      typed_config:
+        "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+        sni: postman-echo.com
+    load_assignment:
+      cluster_name: upstream
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: postman-echo.com
+                port_value: 443
   listeners:
   - name: upstream
     address:
@@ -33,8 +48,9 @@ staticResources:
         portValue: 8080
     filterChains:
     - filters:
-      - name: envoy.http_connection_manager
-        config:
+      - name: envoy.filters.network.http_connection_manager
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
           statPrefix: ingress_http
           httpFilters:
           - name: envoy.router

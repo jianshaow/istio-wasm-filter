@@ -9,8 +9,8 @@ class AuthzFilterRoot extends RootContext {
 }
 
 class AuthzInfo {
-  clientId: string = '';
-  authzType: string = '';
+  clientId: string = "";
+  authzType: string = "";
   requestPriority: u8;
   authorized: bool = false;
   toString(): string {
@@ -92,11 +92,10 @@ class AuthzFilter extends Context {
       (origin_context: Context, headers: u32, body_size: usize, trailers: u32) => {
         log(LogLevelValues.debug, "headers: " + headers.toString() + ", body_size: " + body_size.toString() + ", trailers: " + trailers.toString());
 
+        let context = origin_context as AuthzFilter;
+
         let status = stream_context.headers.http_callback.get(":status");
         log(LogLevelValues.debug, "http_callback status: " + status);
-
-        let context = origin_context as AuthzFilter;
-        context.setEffectiveContext();
 
         if (status != "200") {
           log(LogLevelValues.warn, "authn cluster return " + status + ", access not allowed!");
