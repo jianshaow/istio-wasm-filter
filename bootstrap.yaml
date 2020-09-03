@@ -52,7 +52,20 @@ staticResources:
         typed_config:
           "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
           statPrefix: ingress_http
+          routeConfig:
+            name: upstream_route
+            virtualHosts:
+            - name: upstream_service
+              domains:
+              - '*'
+              routes:
+              - match:
+                  prefix: /
+                route:
+                  autoHostRewrite: true
+                  cluster: upstream
           httpFilters:
+          - name: envoy.router
           - name: envoy.filters.http.wasm
             typed_config:
               '@type': type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm
@@ -68,16 +81,3 @@ staticResources:
                     local:
                       filename: build/optimized.wasm
                   runtime: envoy.wasm.runtime.v8
-          - name: envoy.router
-          routeConfig:
-            name: upstream_route
-            virtualHosts:
-            - name: upstream_service
-              domains:
-              - '*'
-              routes:
-              - match:
-                  prefix: /
-                route:
-                  autoHostRewrite: true
-                  cluster: upstream
