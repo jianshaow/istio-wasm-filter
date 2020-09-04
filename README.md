@@ -36,7 +36,7 @@ kubectl apply -f https://github.com/solo-io/wasme/releases/latest/download/wasme
 # create foo ns and deploy a httpbin on it
 kubectl create ns foo
 kubectl label ns foo istio-injection=enabled
-kubectl apply -f https://raw.githubusercontent.com/istio/istio/1.5.4/samples/httpbin/httpbin.yaml -n foo
+kubectl apply -f https://raw.githubusercontent.com/istio/istio/master/samples/httpbin/httpbin.yaml -n foo
 
 # declarative deployment
 cat <<EOF | kubectl apply -f -
