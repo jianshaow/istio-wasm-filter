@@ -65,4 +65,4 @@ staticResources:
                   autoHostRewrite: true
                   cluster: upstream
           httpFilters:
-          - name: envoy.router
+          - name: envoy.filters.http.router

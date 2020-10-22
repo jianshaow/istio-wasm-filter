@@ -12,13 +12,13 @@ cd /tmp  && git clone https://github.com/jianshaow/istio-wasm-filter.git && cd i
 wasme build assemblyscript -t webassemblyhub.io/jianshao/authz-filter:v0.0.3 .
 
 # run on a local envoy with wasme
-wasme deploy envoy webassemblyhub.io/jianshao/authz-filter:v0.0.3 --bootstrap=bootstrap-tmpl.yaml --config=authn-service
+wasme deploy envoy webassemblyhub.io/jianshao/authz-filter:v0.0.3 --bootstrap=manifest/bootstrap-tmpl.yaml --config=authn-service
 
 # build locally with asbuild
 npm run asbuild
 
 # run on istio proxy with docker
-docker run -ti --rm -p 8080:8080 --entrypoint=envoy -v $PWD/bootstrap.yaml:$PWD/bootstrap.yaml:ro -v $PWD/build:$PWD/build:ro -w $PWD istio/proxyv2:1.7.0 -c $PWD/bootstrap.yaml
+docker run -ti --rm -p 8080:8080 --entrypoint=envoy -v $PWD/manifest/bootstrap.yaml:/etc/envoy/bootstrap.yaml:ro -v $PWD/build:/var/lib/wasme:ro -w $PWD istio/proxyv2:1.7.0 -c /etc/envoy/bootstrap.yaml
 
 # test success
 curl -v -H "Authorization:Basic dGVzdENsaWVudDpzZWNyZXQ=" -H "X-Request-Priority:50" localhost:8080/anything
@@ -30,8 +30,8 @@ curl -v -H "Authorization:Basic dGVzdENsaWVudDpzZWNyZXQ=" -H "X-Request-Priority
 wasme push webassemblyhub.io/jianshao/authz-filter:v0.0.3
 
 # create wasme crds and operator
-kubectl apply -f https://github.com/solo-io/wasme/releases/latest/download/wasme.io_v1_crds.yaml
-kubectl apply -f https://github.com/solo-io/wasme/releases/latest/download/wasme-default.yaml
+kubectl apply -f manifest/wasme.io_v1_crds.yaml
+kubectl apply -f manifest/wasme-default.yaml
 
 # create foo ns and deploy a httpbin on it
 kubectl create ns foo

@@ -65,7 +65,6 @@ staticResources:
                   autoHostRewrite: true
                   cluster: upstream
           httpFilters:
-          - name: envoy.router
           - name: envoy.filters.http.wasm
             typed_config:
               '@type': type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm
@@ -79,5 +78,7 @@ staticResources:
                   vm_id: "authz_vm_id"
                   code:
                     local:
-                      filename: build/optimized.wasm
+                      filename: /var/lib/wasme/optimized.wasm
                   runtime: envoy.wasm.runtime.v8
+          - name: envoy.filters.http.router
+          
