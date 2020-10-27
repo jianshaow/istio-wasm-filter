@@ -78,7 +78,7 @@ staticResources:
                   vm_id: "authz_vm_id"
                   code:
                     local:
-                      filename: /var/lib/wasme/optimized.wasm
+                      filename: optimized.wasm
                   runtime: envoy.wasm.runtime.v8
           - name: envoy.filters.http.router
           
