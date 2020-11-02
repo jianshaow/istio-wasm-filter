@@ -120,18 +120,12 @@ class AuthzFilter extends Context {
   }
 
   private buildAuthHeaders(): Headers {
-    let path = stream_context.headers.request.get(":path");
     let authority = stream_context.headers.request.get(":authority");
 
     let headers: Headers = [];
-
     headers.push(this.newHeaderPair(":authority", authority));
-    if (path == "/anything/failure") {
-      headers.push(this.newHeaderPair(":path", "/status/403"));
-    } else {
-      headers.push(this.newHeaderPair(":path", "/status/200"));
-    }
-    headers.push(this.newHeaderPair(":method", "GET"));
+    headers.push(this.newHeaderPair(":path", "/authenticate"));
+    headers.push(this.newHeaderPair(":method", "POST"));
 
     return headers;
   }
