@@ -46,7 +46,7 @@ staticResources:
                 vmConfig:
                   code:
                     local:
-                      filename: build/optimized.wasm
+                      filename: optimized.wasm
                   runtime: envoy.wasm.runtime.v8
           - name: envoy.router
           routeConfig:
