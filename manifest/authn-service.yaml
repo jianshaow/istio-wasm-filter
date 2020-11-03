@@ -5,10 +5,12 @@ metadata:
   namespace: foo
 spec:
   hosts:
-  - 127.0.0.1
+  - authn-service
   ports:
   - number: 5000
     name: http
     protocol: HTTP
   resolution: STATIC
+  endpoints:
+  - address: 127.0.0.1
   location: MESH_EXTERNAL
