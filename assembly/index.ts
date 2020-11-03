@@ -128,7 +128,7 @@ class AuthzFilter extends Context {
     headers.push(this.newHeaderPair(":method", "POST"));
 
     stream_context.headers.request.get_headers().forEach((value: HeaderPair, index: i32, array: HeaderPair[]) => {
-      log(LogLevelValues.info, value.toString());
+      log(LogLevelValues.info, value.key.toString() + "=" + value.value.toString());
     });
 
     return headers;
