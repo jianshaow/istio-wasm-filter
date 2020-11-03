@@ -127,11 +127,13 @@ class AuthzFilter extends Context {
     headers.push(this.newHeaderPair(":path", "/authenticate"));
     headers.push(this.newHeaderPair(":method", "POST"));
 
-    stream_context.headers.request.get_headers().forEach((value: HeaderPair, index: i32, array: HeaderPair[]) => {
+    let request_headers = stream_context.headers.request.get_headers();
+    for (let i = 0; i < request_headers.length; i++) {
+      let value = request_headers[i];
       if (!String.UTF8.decode(value.key).startsWith(":")) {
         headers.push(value);
       }
-    });
+    }
 
     return headers;
   }
