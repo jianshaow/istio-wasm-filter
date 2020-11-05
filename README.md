@@ -21,7 +21,7 @@ wasme deploy istio webassemblyhub.io/jianshao/authz-filter:v0.0.2 -n foo --id an
 npm run asbuild
 
 # run on istio proxy with docker
-docker run -ti --rm -p 8080:8080 --entrypoint=envoy -v $PWD/bootstrap.yaml:$PWD/bootstrap.yaml:ro -v $PWD/build:$PWD/build:ro -w $PWD istio/proxyv2:1.5.10 -c $PWD/bootstrap.yaml
+docker run -ti --rm -p 8080:8080 --entrypoint=envoy -v $PWD/config/bootstrap.yaml:/etc/envoy/bootstrap.yaml:ro -v $PWD/build:/var/lib/wasme:ro -w /var/lib/wasme istio/proxyv2:1.5.10 -c /etc/envoy/bootstrap.yaml
 
 # test success
 curl -v -H "Authorization:Basic dGVzdENsaWVudDpzZWNyZXQ=" -H "X-Request-Priority:50" localhost:8080/anything
@@ -42,20 +42,10 @@ kubectl label ns foo istio-injection=enabled
 kubectl apply -f https://raw.githubusercontent.com/istio/istio/1.5.4/samples/httpbin/httpbin.yaml -n foo
 
 # declarative deployment
-cat <<EOF | kubectl apply -f -
-apiVersion: wasme.io/v1
-kind: FilterDeployment
-metadata:
-  name: authz-filter
-  namespace: foo
-spec:
-  deployment:
-    istio:
-      kind: Deployment
-  filter:
-    config: authn-service
-    image: webassemblyhub.io/jianshao/authz-filter:v0.0.2
-EOF
+kubectl apply -f manifest/filter-deploy.yaml
+
+# external authentication service
+kubectl apply -f manifest/authn-service.yaml
 
 # run on minikube environment
 export SECURED_HTTPBIN=$(kubectl get service httpbin -n foo -o go-template='{{.spec.clusterIP}}')
