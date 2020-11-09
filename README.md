@@ -20,8 +20,11 @@ wasme deploy istio webassemblyhub.io/jianshao/authz-filter:v0.0.2 -n foo --id an
 # build locally with asbuild
 npm run asbuild
 
+# docker host address
+export AUTHN_SERVICE_HOST=$(ip route|awk '/docker0/ { print $9 }')
+
 # run on istio proxy with docker
-docker run -ti --rm -p 8080:8080 --entrypoint=envoy -v $PWD/config/bootstrap.yaml:/etc/envoy/bootstrap.yaml:ro -v $PWD/build:/var/lib/wasme:ro -w /var/lib/wasme istio/proxyv2:1.5.10 -c /etc/envoy/bootstrap.yaml
+docker run -ti --rm -p 8080:8080 --entrypoint=envoy --add-host authn-service:$AUTHN_SERVICE_HOST -v $PWD/config/bootstrap.yaml:/etc/envoy/bootstrap.yaml:ro -v $PWD/build:/var/lib/wasme:ro -w /var/lib/wasme istio/proxyv2:1.5.10 -c /etc/envoy/bootstrap.yaml
 
 # test success
 curl -v -H "Authorization:Basic dGVzdENsaWVudDpzZWNyZXQ=" -H "X-Request-Priority:50" localhost:8080/anything

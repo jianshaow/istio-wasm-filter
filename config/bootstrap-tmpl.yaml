@@ -20,10 +20,8 @@ staticResources:
     connectTimeout: 1s
     hosts:
     - socketAddress:
-        address: postman-echo.com
-        portValue: 443
-    tlsContext:
-      sni: postman-echo.com
+        address: authn-service
+        portValue: 5000
     type: LOGICAL_DNS
   listeners:
   - name: upstream
