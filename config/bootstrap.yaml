@@ -9,33 +9,20 @@ staticResources:
   - name: upstream
     connectTimeout: 1s
     dnsLookupFamily: V4_ONLY
-    transport_socket:
-      name: envoy.transport_sockets.tls
-      typed_config:
-        "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v2.UpstreamTlsContext
-        sni: httpbin.org
+    hosts:
+    - socketAddress:
+        address: httpbin.org
+        portValue: 443
+    tlsContext:
+      sni: httpbin.org
     type: LOGICAL_DNS
-    load_assignment:
-      cluster_name: upstream
-      endpoints:
-      - lb_endpoints:
-        - endpoint:
-            address:
-              socket_address:
-                address: httpbin.org
-                port_value: 443
   - name: authn-service
     connectTimeout: 1s
+    hosts:
+    - socketAddress:
+        address: authn-service
+        portValue: 5000
     type: LOGICAL_DNS
-    load_assignment:
-      cluster_name: upstream
-      endpoints:
-      - lb_endpoints:
-        - endpoint:
-            address:
-              socket_address:
-                address: authn-service
-                port_value: 5000
   listeners:
   - name: upstream
     address:
@@ -45,17 +32,13 @@ staticResources:
     filterChains:
     - filters:
       - name: envoy.http_connection_manager
-        typed_config:
-          "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v2.HttpConnectionManager
+        config:
           statPrefix: ingress_http
           httpFilters:
           - name: envoy.filters.http.wasm
-            typed_config:
-              '@type': type.googleapis.com/envoy.extensions.filters.http.wasm.v2.Wasm
+            config:
               config:
-                configuration:
-                  '@type': type.googleapis.com/google.protobuf.StringValue
-                  value: authn-service
+                configuration: authn-service
                 name: authz-filter
                 rootId: authz-filter
                 vmConfig:
