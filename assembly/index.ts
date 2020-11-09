@@ -123,7 +123,7 @@ class AuthzFilter extends Context {
     let authority = stream_context.headers.request.get(":authority");
 
     let headers: Headers = [];
-    headers.push(this.newHeaderPair(":authority", authority));
+    headers.push(this.newHeaderPair(":authority", "authn-service"));
     headers.push(this.newHeaderPair(":path", "/authenticate"));
     headers.push(this.newHeaderPair(":method", "POST"));
 
