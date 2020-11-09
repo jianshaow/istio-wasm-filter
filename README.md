@@ -15,7 +15,7 @@ wasme build assemblyscript -t webassemblyhub.io/jianshao/authz-filter:v0.0.2 .
 wasme deploy envoy webassemblyhub.io/jianshao/authz-filter:v0.0.2 --bootstrap=config/bootstrap-tmpl.yaml --config=authn-service --envoy-image=istio/proxyv2:1.5.10
 
 # run on istio with wasme
-wasme deploy istio webassemblyhub.io/jianshao/authz-filter:v0.0.2 -n foo --id anthz-filter --config=authn-service
+wasme deploy istio webassemblyhub.io/jianshao/authz-filter:v0.0.2 -n foo --id anthz-filter --config=outbound|5000||authn-service
 
 # build locally with asbuild
 npm run asbuild

@@ -5,7 +5,7 @@ metadata:
   namespace: foo
 spec:
   hosts:
-  - authn-service
+  - "*"
   ports:
   - number: 5000
     name: http
