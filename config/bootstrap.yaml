@@ -20,11 +20,9 @@ staticResources:
     connectTimeout: 1s
     hosts:
     - socketAddress:
-        address: postman-echo.com
-        portValue: 443
-    tlsContext:
-      sni: postman-echo.com
-    type: LOGICAL_DNS
+        address: 127.0.0.1
+        portValue: 50000
+    type: STATIC
   listeners:
   - name: upstream
     address:

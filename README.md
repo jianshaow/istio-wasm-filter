@@ -12,7 +12,7 @@ cd /tmp  && git clone https://github.com/jianshaow/istio-wasm-filter.git && cd i
 wasme build assemblyscript -t webassemblyhub.io/jianshao/authz-filter:v0.0.2 .
 
 # run on a local envoy with wasme
-wasme deploy envoy webassemblyhub.io/jianshao/authz-filter:v0.0.2 --bootstrap=bootstrap-tmpl.yaml --config=authn-service --envoy-image=istio/proxyv2:1.5.10
+wasme deploy envoy webassemblyhub.io/jianshao/authz-filter:v0.0.2 --bootstrap=config/bootstrap-tmpl.yaml --config=authn-service --envoy-image=istio/proxyv2:1.5.10
 
 # run on istio with wasme
 wasme deploy istio webassemblyhub.io/jianshao/authz-filter:v0.0.2 -n foo --id anthz-filter --config=authn-service
