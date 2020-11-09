@@ -20,8 +20,8 @@ staticResources:
     connectTimeout: 1s
     hosts:
     - socketAddress:
-        address: 127.0.0.1
-        portValue: 50000
+        address: authn-service
+        portValue: 5000
     type: STATIC
   listeners:
   - name: upstream
