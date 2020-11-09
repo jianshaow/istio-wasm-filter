@@ -48,6 +48,7 @@ kubectl apply -f https://raw.githubusercontent.com/istio/istio/1.5.4/samples/htt
 kubectl apply -f manifest/filter-deploy.yaml
 
 # external authentication service
+sed "s/{AUTHN-SERVICE-HOST}/${AUTHN_SERVICE_HOST}/g" template/authn-service.yaml > manifest/authn-service.yaml
 kubectl apply -f manifest/authn-service.yaml
 
 # run on minikube environment

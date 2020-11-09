@@ -12,5 +12,5 @@ spec:
     protocol: HTTP
   resolution: STATIC
   endpoints:
-  - address: 127.0.0.1
+  - address: {AUTHN-SERVICE-HOST}
   location: MESH_EXTERNAL
