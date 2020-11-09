@@ -22,7 +22,7 @@ staticResources:
     - socketAddress:
         address: authn-service
         portValue: 5000
-    type: STATIC
+    type: LOGICAL_DNS
   listeners:
   - name: upstream
     address:
