@@ -53,7 +53,7 @@ sed "s/{AUTHN-SERVICE-HOST}/${AUTHN_SERVICE_HOST}/g" template/authn-service.yaml
 kubectl apply -f manifest/authn-service.yaml
 
 # run on istio with wasme
-wasme deploy istio webassemblyhub.io/jianshao/authz-filter:$FILTER_VERSION -n foo --id anthz-filter --config "outbound|5000||authn-service"
+wasme deploy istio webassemblyhub.io/jianshao/authz-filter:$FILTER_VERSION -n foo --id anthz-filter --config "outbound|5000||authn-service" --ignore-version-check
 ~~~
 
 * Declarative deployment on Istio
