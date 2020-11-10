@@ -1,16 +1,16 @@
 export * from "@solo-io/proxy-runtime/proxy";
-import { RootContext, Context, RootContextHelper, ContextHelper, Headers, HeaderPair, registerRootContext, FilterHeadersStatusValues, LogLevelValues, GrpcStatusValues, log, send_local_response, continue_request, stream_context, WasmResultValues } from "@solo-io/proxy-runtime";
+import { RootContext, Context, Headers, HeaderPair, registerRootContext, FilterHeadersStatusValues, LogLevelValues, GrpcStatusValues, log, send_local_response, continue_request, stream_context, WasmResultValues } from "@solo-io/proxy-runtime";
 import { decode } from "as-base64";
 
 class AuthzFilterRoot extends RootContext {
   createContext(context_id: u32): Context {
-    return ContextHelper.wrap(new AuthzFilter(context_id, this));
+    return new AuthzFilter(context_id, this);
   }
 }
 
 class AuthzInfo {
-  clientId: string;
-  authzType: string;
+  clientId: string = "";
+  authzType: string = "";
   requestPriority: u8;
   authorized: bool = false;
   toString(): string {
@@ -20,18 +20,16 @@ class AuthzInfo {
 }
 
 class AuthzFilter extends Context {
-  root_context: AuthzFilterRoot;
   authzInfo: AuthzInfo;
   authnCluster: string;
 
   constructor(context_id: u32, root_context: AuthzFilterRoot) {
     super(context_id, root_context);
-    this.root_context = root_context;
     this.authzInfo = new AuthzInfo();
     this.authnCluster = root_context.getConfiguration();
   }
 
-  onRequestHeaders(_a: u32): FilterHeadersStatusValues {
+  onRequestHeaders(_a: u32, _nd_of_stream: bool): FilterHeadersStatusValues {
     if (stream_context.headers.request.get("x-auth-internal") == "true") {
       log(LogLevelValues.info, "internal invocation, skip it");
       return FilterHeadersStatusValues.Continue;
@@ -70,7 +68,7 @@ class AuthzFilter extends Context {
     return FilterHeadersStatusValues.StopIteration;
   }
 
-  onResponseHeaders(_a: u32): FilterHeadersStatusValues {
+  onResponseHeaders(_a: u32, _nd_of_stream: bool): FilterHeadersStatusValues {
     log(LogLevelValues.info, "authzFilter: " + this.toString());
     if (this.authnCluster != null && this.authnCluster != "") {
       stream_context.headers.response.add("x-authn-cluster", this.authnCluster);
@@ -94,11 +92,10 @@ class AuthzFilter extends Context {
       (origin_context: Context, headers: u32, body_size: usize, trailers: u32) => {
         log(LogLevelValues.debug, "headers: " + headers.toString() + ", body_size: " + body_size.toString() + ", trailers: " + trailers.toString());
 
+        let context = origin_context as AuthzFilter;
+
         let status = stream_context.headers.http_callback.get(":status");
         log(LogLevelValues.debug, "http_callback status: " + status);
-
-        let context = origin_context as AuthzFilter;
-        context.setEffectiveContext();
 
         if (status != "200") {
           log(LogLevelValues.warn, "authn cluster return " + status + ", access not allowed!");
@@ -139,10 +136,7 @@ class AuthzFilter extends Context {
   }
 
   private newHeaderPair(key: string, value: string): HeaderPair {
-    let headerPair = new HeaderPair();
-    headerPair.key = String.UTF8.encode(key);
-    headerPair.value = String.UTF8.encode(value);
-    return headerPair;
+    return new HeaderPair(String.UTF8.encode(key), String.UTF8.encode(value));
   }
 
   toString(): string {
@@ -150,4 +144,4 @@ class AuthzFilter extends Context {
   }
 }
 
-registerRootContext((context_id: u32) => { return RootContextHelper.wrap(new AuthzFilterRoot(context_id)); }, "authz-filter");
+registerRootContext((context_id: u32) => { return new AuthzFilterRoot(context_id); }, "authz-filter");

@@ -9,13 +9,13 @@ export PATH=$HOME/.wasme/bin:$PATH
 cd /tmp  && git clone https://github.com/jianshaow/istio-wasm-filter.git && cd istio-wasm-filter
 
 # build locally with wasme
-wasme build assemblyscript -t webassemblyhub.io/jianshao/authz-filter:v0.0.2 .
+wasme build assemblyscript -t webassemblyhub.io/jianshao/authz-filter:v0.0.3 .
 
 # run on a local envoy with wasme
-wasme deploy envoy webassemblyhub.io/jianshao/authz-filter:v0.0.2 --bootstrap config/bootstrap-tmpl.yaml --config authn-service --envoy-image istio/proxyv2:1.5.10
+wasme deploy envoy webassemblyhub.io/jianshao/authz-filter:v0.0.3 --bootstrap=config/bootstrap-tmpl.yaml --config authn-service --envoy-image=istio/proxyv2:1.7.3
 
 # run on istio with wasme
-wasme deploy istio webassemblyhub.io/jianshao/authz-filter:v0.0.2 -n foo --id anthz-filter --config "outbound|5000||authn-service"
+wasme deploy istio webassemblyhub.io/jianshao/authz-filter:v0.0.3 -n foo --id anthz-filter --config "outbound|5000||authn-service"
 
 # build locally with asbuild
 npm run asbuild
@@ -24,7 +24,7 @@ npm run asbuild
 export AUTHN_SERVICE_HOST=$(ip route|awk '/docker0/ { print $9 }')
 
 # run on istio proxy with docker
-docker run -ti --rm -p 8080:8080 --entrypoint=envoy --add-host authn-service:$AUTHN_SERVICE_HOST -v $PWD/config/bootstrap.yaml:/etc/envoy/bootstrap.yaml:ro -v $PWD/build:/var/lib/wasme:ro -w /var/lib/wasme istio/proxyv2:1.5.10 -c /etc/envoy/bootstrap.yaml
+docker run -ti --rm -p 8080:8080 --entrypoint=envoy --add-host authn-service:$AUTHN_SERVICE_HOST -v $PWD/config/bootstrap.yaml:/etc/envoy/bootstrap.yaml:ro -v $PWD/build:/var/lib/wasme:ro -w /var/lib/wasme istio/proxyv2:1.7.3 -c /etc/envoy/bootstrap.yaml
 
 # test success
 curl -v -H "Authorization:Basic dGVzdENsaWVudDpzZWNyZXQ=" -H "X-Request-Priority:50" localhost:8080/anything
@@ -33,16 +33,16 @@ curl -v -H "Authorization:Basic dGVzdENsaWVudDpzZWNyZXQ=" -H "X-Request-Priority
 curl -v -H "Authorization:Basic dGVzdENsaWVudDpzZWNyZXQ=" -H "X-Request-Priority:50" localhost:8080/anything/failure
 
 # push to remote repository
-wasme push webassemblyhub.io/jianshao/authz-filter:v0.0.2
+wasme push webassemblyhub.io/jianshao/authz-filter:v0.0.3
 
 # create wasme crds and operator
-kubectl apply -f https://github.com/solo-io/wasme/releases/latest/download/wasme.io_v1_crds.yaml
-kubectl apply -f https://github.com/solo-io/wasme/releases/latest/download/wasme-default.yaml
+kubectl apply -f manifest/wasme.io_v1_crds.yaml
+kubectl apply -f manifest/wasme-default.yaml
 
 # create foo ns and deploy a httpbin on it
 kubectl create ns foo
 kubectl label ns foo istio-injection=enabled
-kubectl apply -f https://raw.githubusercontent.com/istio/istio/1.5.4/samples/httpbin/httpbin.yaml -n foo
+kubectl apply -f https://raw.githubusercontent.com/istio/istio/master/samples/httpbin/httpbin.yaml -n foo
 
 # declarative deployment
 kubectl apply -f manifest/filter-deploy.yaml
