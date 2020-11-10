@@ -12,16 +12,19 @@ cd /tmp  && git clone https://github.com/jianshaow/istio-wasm-filter.git && cd i
 wasme build assemblyscript -t webassemblyhub.io/jianshao/authz-filter:v0.0.3 .
 
 # run on a local envoy with wasme
-wasme deploy envoy webassemblyhub.io/jianshao/authz-filter:v0.0.3 --bootstrap=config/bootstrap-tmpl.yaml --config=authn-service --envoy-image=istio/proxyv2:1.7.3
+wasme deploy envoy webassemblyhub.io/jianshao/authz-filter:v0.0.3 --bootstrap=config/bootstrap-tmpl.yaml --config authn-service --envoy-image=istio/proxyv2:1.7.3
 
 # run on istio with wasme
-wasme deploy istio webassemblyhub.io/jianshao/authz-filter:v0.0.3 -n foo --id anthz-filter --config=authn-service
+wasme deploy istio webassemblyhub.io/jianshao/authz-filter:v0.0.3 -n foo --id anthz-filter --config "outbound|5000||authn-service"
 
 # build locally with asbuild
 npm run asbuild
 
+# docker host address
+export AUTHN_SERVICE_HOST=$(ip route|awk '/docker0/ { print $9 }')
+
 # run on istio proxy with docker
-docker run -ti --rm -p 8080:8080 --entrypoint=envoy -v $PWD/config/bootstrap.yaml:/etc/envoy/bootstrap.yaml:ro -v $PWD/build:/var/lib/wasme:ro -w /var/lib/wasme istio/proxyv2:1.7.3 -c /etc/envoy/bootstrap.yaml
+docker run -ti --rm -p 8080:8080 --entrypoint=envoy --add-host authn-service:$AUTHN_SERVICE_HOST -v $PWD/config/bootstrap.yaml:/etc/envoy/bootstrap.yaml:ro -v $PWD/build:/var/lib/wasme:ro -w /var/lib/wasme istio/proxyv2:1.7.3 -c /etc/envoy/bootstrap.yaml
 
 # test success
 curl -v -H "Authorization:Basic dGVzdENsaWVudDpzZWNyZXQ=" -H "X-Request-Priority:50" localhost:8080/anything
@@ -42,20 +45,11 @@ kubectl label ns foo istio-injection=enabled
 kubectl apply -f https://raw.githubusercontent.com/istio/istio/master/samples/httpbin/httpbin.yaml -n foo
 
 # declarative deployment
-cat <<EOF | kubectl apply -f -
-apiVersion: wasme.io/v1
-kind: FilterDeployment
-metadata:
-  name: authz-filter
-  namespace: foo
-spec:
-  deployment:
-    istio:
-      kind: Deployment
-  filter:
-    config: authn-service
-    image: webassemblyhub.io/jianshao/authz-filter:v0.0.3
-EOF
+kubectl apply -f manifest/filter-deploy.yaml
+
+# external authentication service
+sed "s/{AUTHN-SERVICE-HOST}/${AUTHN_SERVICE_HOST}/g" template/authn-service.yaml > manifest/authn-service.yaml
+kubectl apply -f manifest/authn-service.yaml
 
 # run on minikube environment
 export SECURED_HTTPBIN=$(kubectl get service httpbin -n foo -o go-template='{{.spec.clusterIP}}')
