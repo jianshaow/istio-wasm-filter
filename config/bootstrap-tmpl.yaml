@@ -26,15 +26,20 @@ staticResources:
   - name: authn-service
     connectTimeout: 1s
     type: LOGICAL_DNS
+    transport_socket:
+      name: envoy.transport_sockets.tls
+      typed_config:
+        "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+        sni: postman-echo.com
     load_assignment:
-      cluster_name: authn-service
+      cluster_name: upstream
       endpoints:
       - lb_endpoints:
         - endpoint:
             address:
               socket_address:
-                address: authn-service
-                port_value: 5000
+                address: postman-echo.com
+                port_value: 443
   listeners:
   - name: upstream
     address:
