@@ -9,4 +9,4 @@ spec:
       kind: Deployment
   filter:
     config: authn-service
-    image: webassemblyhub.io/jianshao/authz-filter:v0.0.2
+    image: webassemblyhub.io/jianshao/authz-filter:{FILTER_VERSION}

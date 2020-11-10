@@ -7,7 +7,4 @@ python -m venv --system-site-packages flask
 source flask/bin/activate
 pip install --upgrade pip
 pip install flask
-
-# run authn-service
-python app.py
 ~~~
