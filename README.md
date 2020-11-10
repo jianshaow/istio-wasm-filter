@@ -41,6 +41,9 @@ docker run -ti --rm -p 8080:8080 --entrypoint=envoy --add-host authn-service:$AU
 # build locally with wasme
 wasme build assemblyscript -t webassemblyhub.io/jianshao/authz-filter:$FILTER_VERSION .
 
+# push to remote repository
+wasme push webassemblyhub.io/jianshao/authz-filter:$FILTER_VERSION
+
 # run on a local envoy with wasme
 wasme deploy envoy webassemblyhub.io/jianshao/authz-filter:$FILTER_VERSION --bootstrap config/bootstrap-tmpl.yaml --config authn-service --envoy-image istio/proxyv2:$ISTIO_VERSION
 ~~~
@@ -59,9 +62,6 @@ wasme deploy istio webassemblyhub.io/jianshao/authz-filter:$FILTER_VERSION -n fo
 * Declarative deployment on Istio
 
 ~~~ shell
-# push to remote repository
-wasme push webassemblyhub.io/jianshao/authz-filter:$FILTER_VERSION
-
 # create wasme crds and operator
 kubectl apply -f manifest/wasme.io_v1_crds.yaml
 kubectl apply -f manifest/wasme-default.yaml
