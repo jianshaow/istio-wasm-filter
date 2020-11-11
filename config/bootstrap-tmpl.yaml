@@ -23,17 +23,17 @@ staticResources:
               socket_address:
                 address: httpbin.org
                 port_value: 443
-  - name: authn-service
+  - name: auth-service
     connectTimeout: 1s
     type: LOGICAL_DNS
     load_assignment:
-      cluster_name: authn-service
+      cluster_name: auth-service
       endpoints:
       - lb_endpoints:
         - endpoint:
             address:
               socket_address:
-                address: authn-service
+                address: auth-service
                 port_value: 5000
   listeners:
   - name: upstream

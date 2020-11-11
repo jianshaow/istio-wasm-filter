@@ -1,16 +1,16 @@
 apiVersion: networking.istio.io/v1alpha3
 kind: ServiceEntry
 metadata:
-  name: authn-service
+  name: auth-service
   namespace: foo
 spec:
   hosts:
-  - authn-service
+  - auth-service
   ports:
   - number: 5000
     name: http
     protocol: HTTP
   resolution: STATIC
   endpoints:
-  - address: {AUTHN-SERVICE-HOST}
+  - address: {AUTH-SERVICE-HOST}
   location: MESH_EXTERNAL

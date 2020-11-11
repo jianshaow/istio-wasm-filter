@@ -7,7 +7,7 @@
   ],
   "config": {
     "rootIds": [
-      "authz-filter"
+      "auth-filter"
     ]
   }
 }

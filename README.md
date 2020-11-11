@@ -1,6 +1,6 @@
 # istio-wasm-filter
 
-* Prepair source and authn-service
+* Prepair source and auth-service
 
 ~~~ shell
 # install WebAssembly Hub CLI
@@ -14,11 +14,11 @@ cd /tmp  && git clone https://github.com/jianshaow/istio-wasm-filter.git && cd i
 export ISTIO_VERSION=1.7.4
 
 # filter version
-export FILTER_VERSION=v0.0.3
+export FILTER_VERSION=v0.1.0
 
-# prepair python environment according to authn-service/README.md
-# run authn-service on another console
-python authn-service/app.py
+# prepair python environment according to auth-service/README.md
+# run auth-service on another console
+python auth-service/app.py
 ~~~
 
 * Build with npm and run with docker
@@ -29,34 +29,34 @@ npm install
 npm run asbuild
 
 # docker host address
-export AUTHN_SERVICE_HOST=$(ip route|awk '/docker0/ { print $9 }')
+export AUTH_SERVICE_HOST=$(ip route|awk '/docker0/ { print $9 }')
 
 # run on istio proxy with docker
-docker run -ti --rm -p 8080:8080 --entrypoint=envoy --add-host authn-service:$AUTHN_SERVICE_HOST -v $PWD/config/bootstrap.yaml:/etc/envoy/bootstrap.yaml:ro -v $PWD/build:/var/lib/wasme:ro -w /var/lib/wasme istio/proxyv2:$ISTIO_VERSION -c /etc/envoy/bootstrap.yaml
+docker run -ti --rm -p 8080:8080 --entrypoint=envoy --add-host auth-service:$AUTH_SERVICE_HOST -v $PWD/config/bootstrap.yaml:/etc/envoy/bootstrap.yaml:ro -v $PWD/build:/var/lib/wasme:ro -w /var/lib/wasme istio/proxyv2:$ISTIO_VERSION -c /etc/envoy/bootstrap.yaml
 ~~~
 
 * Build and run on envoy with wasme
 
 ~~~ shell
 # build locally with wasme
-wasme build assemblyscript -t webassemblyhub.io/jianshao/authz-filter:$FILTER_VERSION .
+wasme build assemblyscript -t webassemblyhub.io/jianshao/auth-filter:$FILTER_VERSION .
 
 # push to remote repository
-wasme push webassemblyhub.io/jianshao/authz-filter:$FILTER_VERSION
+wasme push webassemblyhub.io/jianshao/auth-filter:$FILTER_VERSION
 
 # run on a local envoy with wasme
-wasme deploy envoy webassemblyhub.io/jianshao/authz-filter:$FILTER_VERSION --bootstrap config/bootstrap-tmpl.yaml --config authn-service --envoy-image istio/proxyv2:$ISTIO_VERSION
+wasme deploy envoy webassemblyhub.io/jianshao/auth-filter:$FILTER_VERSION --bootstrap config/bootstrap-tmpl.yaml --config auth-service --envoy-image istio/proxyv2:$ISTIO_VERSION
 ~~~
 
 * Run on istio with wasme
 
 ~~~ shell
-# create authn-service ServiceEntry
-sed "s/{AUTHN-SERVICE-HOST}/${AUTHN_SERVICE_HOST}/g" template/authn-service.yaml > manifest/authn-service.yaml
-kubectl apply -f manifest/authn-service.yaml
+# create auth-service ServiceEntry
+sed "s/{AUTH-SERVICE-HOST}/${AUTH_SERVICE_HOST}/g" template/auth-service.yaml > manifest/auth-service.yaml
+kubectl apply -f manifest/auth-service.yaml
 
 # run on istio with wasme
-wasme deploy istio webassemblyhub.io/jianshao/authz-filter:$FILTER_VERSION -n foo --id anthz-filter --config "outbound|5000||authn-service" --ignore-version-check
+wasme deploy istio webassemblyhub.io/jianshao/auth-filter:$FILTER_VERSION -n foo --id anthz-filter --config "outbound|5000||auth-service" --ignore-version-check
 ~~~
 
 * Declarative deployment on Istio

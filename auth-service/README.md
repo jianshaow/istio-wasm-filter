@@ -1,4 +1,4 @@
-# authn-service
+# auth-service
 
 ~~~ shell
 # prepare python environment

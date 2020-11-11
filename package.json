@@ -16,8 +16,7 @@
   },
   "dependencies": {
     "@assemblyscript/loader": "^0.14.9",
-    "@solo-io/proxy-runtime": "^0.1.8",
-    "as-base64": "^0.1.1"
+    "@solo-io/proxy-runtime": "^0.1.8"
   },
   "devDependencies": {
     "assemblyscript": "^0.14.9"
