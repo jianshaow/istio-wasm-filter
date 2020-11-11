@@ -55,8 +55,11 @@ wasme deploy envoy webassemblyhub.io/jianshao/auth-filter:$FILTER_VERSION --boot
 sed "s/{AUTH-SERVICE-HOST}/${AUTH_SERVICE_HOST}/g" template/auth-service.yaml > manifest/auth-service.yaml
 kubectl apply -f manifest/auth-service.yaml
 
-# run on istio with wasme
-wasme deploy istio webassemblyhub.io/jianshao/auth-filter:$FILTER_VERSION -n foo --id anthz-filter --config "outbound|5000||auth-service" --ignore-version-check
+# deploy to istio with wasme
+wasme deploy istio webassemblyhub.io/jianshao/auth-filter:$FILTER_VERSION -n foo --id auth-filter --config "outbound|5000||auth-service" --ignore-version-check
+
+# undeploy from istio
+wasme undeploy istio -n foo --id auth-filter
 ~~~
 
 * Declarative deployment on Istio

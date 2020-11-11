@@ -10,7 +10,7 @@ class AuthInfo {
   clientId: string = "";
   authenticated: bool = false;
   toString(): string {
-    return "AuthInfo[clientId=" + this.clientId + ", authenticated=" + this.authenticated + "]";
+    return "AuthInfo[clientId=" + this.clientId + ", authenticated=" + this.authenticated.toString() + "]";
   }
 }
 
