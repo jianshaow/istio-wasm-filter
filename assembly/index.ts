@@ -1,33 +1,25 @@
 export * from "@solo-io/proxy-runtime/proxy";
 import { RootContext, Context, Headers, HeaderPair, registerRootContext, FilterHeadersStatusValues, LogLevelValues, GrpcStatusValues, log, send_local_response, continue_request, stream_context, WasmResultValues } from "@solo-io/proxy-runtime";
+
 class AuthFilterRoot extends RootContext {
   createContext(context_id: u32): Context {
     return new AuthFilter(context_id, this);
   }
 }
 
-class AuthInfo {
-  clientId: string = "";
-  authenticated: bool = false;
-  toString(): string {
-    return "AuthInfo[clientId=" + this.clientId + ", authenticated=" + this.authenticated.toString() + "]";
-  }
-}
-
 class AuthFilter extends Context {
-  authInfo: AuthInfo;
+  authPassed: bool;
   authCluster: string;
 
   constructor(context_id: u32, root_context: AuthFilterRoot) {
     super(context_id, root_context);
-    this.authInfo = new AuthInfo();
     this.authCluster = root_context.getConfiguration();
   }
 
   onRequestHeaders(_a: u32, _nd_of_stream: bool): FilterHeadersStatusValues {
-    this.authenticate();
+    this.auth();
 
-    if (this.authInfo.authenticated) {
+    if (this.authPassed) {
       log(LogLevelValues.info, "access allowed");
       return FilterHeadersStatusValues.Continue;
     }
@@ -41,17 +33,13 @@ class AuthFilter extends Context {
     if (this.authCluster != null && this.authCluster != "") {
       stream_context.headers.response.add("x-auth-cluster", this.authCluster);
     }
-    if (this.authInfo.clientId != null && this.authInfo.clientId != "") {
-      stream_context.headers.response.add("x-client-id", this.authInfo.clientId);
-    }
-    stream_context.headers.response.add("x-authorized", this.authInfo.authenticated.toString());
     return FilterHeadersStatusValues.Continue;
   }
 
-  private authenticate(): void {
-    let headers = this.buildAuthHeaders();
+  private auth(): void {
+    let authHeaders = this.buildAuthHeaders();
 
-    let result = this.root_context.httpCall(this.authCluster, headers, new ArrayBuffer(0), [], 1000, this,
+    let result = this.root_context.httpCall(this.authCluster, authHeaders, new ArrayBuffer(0), [], 1000, this,
       (origin_context: Context, headers: u32, body_size: usize, trailers: u32) => {
         log(LogLevelValues.debug, "headers: " + headers.toString() + ", body_size: " + body_size.toString() + ", trailers: " + trailers.toString());
 
@@ -67,14 +55,19 @@ class AuthFilter extends Context {
         }
 
         let callback_headers = stream_context.headers.http_callback.get_headers();
+        log(LogLevelValues.debug, "========== auth-service response header ==========")
         for (let i = 0; i < callback_headers.length; i++) {
           let header = callback_headers[i];
-          if (!String.UTF8.decode(header.key).startsWith("x-auth-")) {
-            stream_context.headers.request.get_headers().push(header)
+          let key = String.UTF8.decode(header.key)
+          let value = String.UTF8.decode(header.value)
+          log(LogLevelValues.debug, key + ": " + value)
+          if (key.startsWith("x-auth-")) {
+            stream_context.headers.request.add(key, value)
           }
         }
+        log(LogLevelValues.debug, "========== auth-service response header ==========")
 
-        context.authInfo.authenticated = true;
+        context.authPassed = true;
         log(LogLevelValues.info, "access allowed, continue!");
         continue_request();
       });
@@ -89,17 +82,23 @@ class AuthFilter extends Context {
 
   private buildAuthHeaders(): Headers {
     let headers: Headers = [];
+
     headers.push(this.newHeaderPair(":authority", "auth-service"));
     headers.push(this.newHeaderPair(":path", "/auth"));
     headers.push(this.newHeaderPair(":method", "POST"));
 
     let request_headers = stream_context.headers.request.get_headers();
+    log(LogLevelValues.debug, "=============== request header ===============")
     for (let i = 0; i < request_headers.length; i++) {
       let header = request_headers[i];
-      if (!String.UTF8.decode(header.key).startsWith(":")) {
+      let key = String.UTF8.decode(header.key)
+      let value = String.UTF8.decode(header.value)
+      log(LogLevelValues.debug, key + ": " + value)
+      if (!key.startsWith(":")) {
         headers.push(header);
       }
     }
+    log(LogLevelValues.debug, "=============== request header ===============")
 
     return headers;
   }
@@ -109,7 +108,7 @@ class AuthFilter extends Context {
   }
 
   toString(): string {
-    return "AuthFilter[contextId = " + this.context_id.toString() + ", authCluster = " + this.authCluster + ", authInfo = " + this.authInfo.toString() + "]";
+    return "AuthFilter[contextId=" + this.context_id.toString() + ", authCluster=" + this.authCluster + ", authPassed=" + this.authPassed.toString() + "]";
   }
 }
 

@@ -28,7 +28,7 @@ python auth-service/app.py
 npm install
 npm run asbuild
 
-# docker host address
+# use docker host address if auth-service run in the same host
 export AUTH_SERVICE_HOST=$(ip route|awk '/docker0/ { print $9 }')
 
 # run on istio proxy with docker
@@ -77,11 +77,11 @@ kubectl apply -f manifest/filter-deploy.yaml
 * Test on local
 
 ~~~ shell
-# test success
-curl -v -H "Authorization:Basic dGVzdENsaWVudDpzZWNyZXQ=" -H "X-Request-Priority:50" localhost:8000/anything
+# success
+curl -v -H "Authorization:Basic dGVzdENsaWVudDpzZWNyZXQ=" -H "X-Request-Priority:50" http://localhost:8080/anything
 
-# test failure
-curl -v -H "Authorization:Basic dGVzdENsaWVudDpzZWNyZXQ=" -H "X-Request-Priority:50" localhost:8000/anything/failure
+# permission denied
+curl -v -H "X-Request-Priority:50" http://localhost:8080/anything
 ~~~
 
 * Test on Istio
@@ -106,14 +106,13 @@ curl -i -X POST \
 }' \
 "http://$SECURED_HTTPBIN:8000/anything"
 
-# access httpbin service failure
+# access httpbin service permission denied
 curl -i -X POST \
--H "Authorization:Basic dGVzdENsaWVudDpzZWNyZXQ=" \
 -H "Content-Type:application/json" \
 -H "X-Request-Priority:50" \
 -d \
 '{
   "message":"hello world!"
 }' \
-"http://$SECURED_HTTPBIN:8000/anything/failure"
+"http://$SECURED_HTTPBIN:8000/anything"
 ~~~

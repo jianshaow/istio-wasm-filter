@@ -21,6 +21,7 @@ def authenticate():
         priority = int(priority_header)
     else:
         priority = 0
+
     if priority > 100:
         authorized_header = 'true'
     else:
