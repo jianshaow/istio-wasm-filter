@@ -29,7 +29,7 @@ class AuthFilter extends Context {
   }
 
   onResponseHeaders(_a: u32, _nd_of_stream: bool): FilterHeadersStatusValues {
-    log(LogLevelValues.info, "authFilter: " + this.toString());
+    log(LogLevelValues.debug, "authFilter: " + this.toString());
     if (this.authCluster != null && this.authCluster != "") {
       stream_context.headers.response.add("x-auth-cluster", this.authCluster);
     }
@@ -37,9 +37,7 @@ class AuthFilter extends Context {
   }
 
   private auth(): void {
-    let authHeaders = this.buildAuthHeaders();
-
-    let result = this.root_context.httpCall(this.authCluster, authHeaders, new ArrayBuffer(0), [], 1000, this,
+    let result = this.root_context.httpCall(this.authCluster, stream_context.headers.request.get_headers(), new ArrayBuffer(0), [], 1000, this,
       (origin_context: Context, headers: u32, body_size: usize, trailers: u32) => {
         log(LogLevelValues.debug, "headers: " + headers.toString() + ", body_size: " + body_size.toString() + ", trailers: " + trailers.toString());
 
@@ -50,22 +48,23 @@ class AuthFilter extends Context {
 
         if (status != "200") {
           log(LogLevelValues.warn, "auth cluster return " + status + ", access not allowed!");
-          send_local_response(403, "permision denied", String.UTF8.encode("permision denied\n"), [], GrpcStatusValues.PermissionDenied);
+          let grpc_status = GrpcStatusValues.PermissionDenied;
+          let body = String.UTF8.encode("access not allowed!\n")
+          if (status == '401') {
+            grpc_status = GrpcStatusValues.Unauthenticated;
+            body = String.UTF8.encode("authentication fail!\n")
+          }
+          let response_code = u32(parseInt(status))
+          send_local_response(response_code, "not allowed", body, [], grpc_status);
           return;
         }
 
         let callback_headers = stream_context.headers.http_callback.get_headers();
-        log(LogLevelValues.debug, "========== auth-service response header ==========")
-        for (let i = 0; i < callback_headers.length; i++) {
-          let header = callback_headers[i];
-          let key = String.UTF8.decode(header.key)
-          let value = String.UTF8.decode(header.value)
-          log(LogLevelValues.debug, key + ": " + value)
+        context.handleHeaders(callback_headers, (_header: HeaderPair, key: string, value: string) => {
           if (key.startsWith("x-auth-")) {
             stream_context.headers.request.add(key, value)
           }
-        }
-        log(LogLevelValues.debug, "========== auth-service response header ==========")
+        });
 
         context.authPassed = true;
         log(LogLevelValues.info, "access allowed, continue!");
@@ -80,31 +79,16 @@ class AuthFilter extends Context {
     }
   }
 
-  private buildAuthHeaders(): Headers {
-    let headers: Headers = [];
-
-    headers.push(this.newHeaderPair(":authority", "auth-service"));
-    headers.push(this.newHeaderPair(":path", "/auth"));
-    headers.push(this.newHeaderPair(":method", "POST"));
-
-    let request_headers = stream_context.headers.request.get_headers();
-    log(LogLevelValues.debug, "=============== request header ===============")
-    for (let i = 0; i < request_headers.length; i++) {
-      let header = request_headers[i];
+  private handleHeaders(headers: Headers, handler: (header: HeaderPair, key: string, value: string) => void): void {
+    log(LogLevelValues.debug, "*************** handle headers ***************")
+    for (let i = 0; i < headers.length; i++) {
+      let header = headers[i];
       let key = String.UTF8.decode(header.key)
       let value = String.UTF8.decode(header.value)
-      log(LogLevelValues.debug, key + ": " + value)
-      if (!key.startsWith(":")) {
-        headers.push(header);
-      }
+      log(LogLevelValues.debug, "* " + key + ": " + value)
+      handler(header, key, value);
     }
-    log(LogLevelValues.debug, "=============== request header ===============")
-
-    return headers;
-  }
-
-  private newHeaderPair(key: string, value: string): HeaderPair {
-    return new HeaderPair(String.UTF8.encode(key), String.UTF8.encode(value));
+    log(LogLevelValues.debug, "*************** handle headers ***************")
   }
 
   toString(): string {
