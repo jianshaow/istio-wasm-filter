@@ -11,7 +11,7 @@ export PATH=$HOME/.wasme/bin:$PATH
 cd /tmp  && git clone https://github.com/jianshaow/istio-wasm-filter.git && cd istio-wasm-filter
 
 # Istio version
-export ISTIO_VERSION=1.7.4
+export ISTIO_VERSION=1.8.1
 
 # filter version
 export FILTER_VERSION=v0.1.0
