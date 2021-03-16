@@ -42,6 +42,7 @@ def auth(path):
 def authn_fail():
     return 'Unauthorized', 401
 
+
 def authz_fail():
     return 'Forbidden', 403
 
